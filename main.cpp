@@ -6,8 +6,8 @@
 #include <math.h>
 using namespace Eigen;
 
-#define N 3 // number of particles
-const float h = 5.0; 
+#define N 2 // number of particles
+const float E = 100.0;
 
 const int D = pow(2, N); // Hamiltonian will be a DxD matrix
 Matrix2i Pauli_x, Pauli_z, I = Matrix2i::Identity();
@@ -46,13 +46,16 @@ int main()
     for(int j = 0; j < N; j++)
       H1 += J(i,j) * (Sz[i] * Sz[j]).cast<float>(); 
   }
-  
+  H1 /= D;
+
   H0 = H1; 
-  for (int i = 0; i < N; i++) H0 += h * Sx[i].cast<float>(); // calculating H0
+  for (int i = 0; i < N; i++) H0 += E / 2 * Sx[i].cast<float>(); // calculating H0
 
   std::cout << "J:" << std::endl << J << std::endl << std::endl;
+  std::cout << "E:" << std::endl << E << std::endl << std::endl;
   std::cout << "H1:" << std::endl << H1 << std::endl << std::endl;
   std::cout << "H0:" << std::endl << H0 << std::endl << std::endl;
-  std::cout << std::endl << "H0 eigenvalues: " << H0.eigenvalues() << std::endl; 
+  std::cout << std::endl << "H0 eigenvalues: " << std::endl << H0.eigenvalues() << std::endl; 
+
   return 0;
 } 
