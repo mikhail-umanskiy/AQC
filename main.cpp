@@ -4,10 +4,14 @@
 #include "Eigen/unsupported/Eigen/KroneckerProduct"
 #include <time.h>
 #include <math.h>
+#include <complex>
 using namespace Eigen;
-
-#define N 2 // number of particles
-const float E = 100.0;
+#define SPIN_NUM 2 // number of particles
+#define STEP_NUM 1000000 // number of steps for adiabatic computation
+const int N = SPIN_NUM;
+const float dt = 0.0001;
+const float q = 0.1; //dE/dt
+float E = STEP_NUM*q*dt;
 
 const int D = pow(2, N); // Hamiltonian will be a DxD matrix
 Matrix2i Pauli_x, Pauli_z, I = Matrix2i::Identity();
@@ -49,13 +53,43 @@ int main()
   H1 /= D;
 
   H0 = H1; 
-  for (int i = 0; i < N; i++) H0 += E / 2 * Sx[i].cast<float>(); // calculating H0
+  MatrixXf _Sx = Sx[0].cast<float>();
+  for (int i = 1; i < N; i++) _Sx += Sx[i].cast<float>(); // calculating _Sx - sum of Sx[i]
+  _Sx *= 0.5;
+  H0 += E * _Sx;
 
-  std::cout << "J:" << std::endl << J << std::endl << std::endl;
-  std::cout << "E:" << std::endl << E << std::endl << std::endl;
-  std::cout << "H1:" << std::endl << H1 << std::endl << std::endl;
+  EigenSolver<MatrixXf> solver_H0(H0); // solver for H0
+  //std::cout << "J:" << std::endl << J << std::endl << std::endl;
+  //std::cout << "E:" << std::endl << E << std::endl << std::endl;
+  //std::cout << "H1:" << std::endl << H1 << std::endl << std::endl;
   std::cout << "H0:" << std::endl << H0 << std::endl << std::endl;
-  std::cout << std::endl << "H0 eigenvalues: " << std::endl << H0.eigenvalues() << std::endl; 
+  //std::cout << std::endl << "H0 eigenvalues: " << std::endl << H0.eigenvalues() << std::endl;
+  //std::cout << std::endl << "H0 eigenvectors: " << std::endl << solver_H0.eigenvectors() << std::endl; 
+  
+  
+  
+  float min = 0, minnum = 0;
+  for (int i = 0; i < D; i++) if( H0.eigenvalues()(i).real() < min) { min = H0.eigenvalues()(i).real(); minnum = i; }
+  MatrixXcf psi0 = solver_H0.eigenvectors().col(minnum);
+  std::cout << std::endl << psi0 << std::endl;
+  MatrixXcf psi = psi0;
+  MatrixXf  H   =   H0;
+  
+  
+  for (int i = 0; i < STEP_NUM; i++) {
+  
+  MatrixXcf delta_psi = H*psi*dt;
+  
+  delta_psi *= -std::complex<float>(0,1);
+  
+  psi += delta_psi;
+  H -= q*dt*_Sx;
+  //std::cout << std::endl << psi << std::endl;
+  }
+  EigenSolver<MatrixXf> solver_H(H); // solver for H0
+  std::cout << std::endl << std::endl << std::endl << H << std::endl;
+  std::cout << std::endl << std::endl << std::endl << solver_H.eigenvectors() << std::endl;
+  std::cout << std::endl << std::endl << std::endl << psi << std::endl;
 
   return 0;
 } 

@@ -1,4 +1,4 @@
 SRCS := main.cpp
-
+ARGS := -std=c++14
 all: 
-	g++ $(SRCS) -o aqc
+	g++ $(ARGS) $(SRCS) -o aqc
