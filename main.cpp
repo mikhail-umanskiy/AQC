@@ -7,14 +7,17 @@
 #include <complex>
 using namespace Eigen;
 #define SPIN_NUM 3 // number of particles
-#define STEP_NUM 10000000 // number of steps for adiabatic computation
 const int N = SPIN_NUM;
 const double dt = 0.001;
-const double q = 0.001; //dE/dt
-double E = STEP_NUM*q*dt;
-
+const double q = 0.001;
+const double E0 = 5;
+const int STEP_NUM = (int)(E0/(q*dt));
+double E = E0;
 const int D = pow(2, N); // Hamiltonian will be a DxD matrix
+
 Matrix2i Pauli_x, Pauli_z, I = Matrix2i::Identity();
+const std::complex<double> _i(0,1);
+const double _s21 = sqrt(21);
 
 int main()
 {
@@ -71,24 +74,25 @@ int main()
   MatrixXcd psi0 = solver_H0.eigenvectors().col(minnum);
   std::cout << std::endl << "psi0:" << std::endl << psi0 << std::endl;
   MatrixXcd psi = psi0;
-  MatrixXd  H   =   H0;
-  MatrixXcd k1,k2,k3,k4; 
+  MatrixXd  H   =   H0, dH=-q*dt*_Sx;
+  MatrixXcd k1,k2,k3,k4,k5,k6,k7; 
   int percent = 0; 
   for (int i = 0; i < STEP_NUM; i++) {
-  if (i == STEP_NUM*percent/100)
-  {
-    printf("%d%%\n", percent);
-    percent++;
-  }
-  k1 = H*psi*(-std::complex<double>(0,1));
-  
-  H -= q*dt*_Sx*0.5;
-  k2 = H*(psi+dt/2*k1)*(-std::complex<double>(0,1));
-  k3 = H*(psi+dt/2*k2)*(-std::complex<double>(0,1));
-  H -= q*dt*_Sx*0.5;
-  k4 = H*(psi+dt*k3)*(-std::complex<double>(0,1));
+    if (i == STEP_NUM*percent/100)
+    {
+      printf("%d%%\n", percent);
+      percent++;
+    }
+    k1 = -_i*H*psi;
+    k2 = -_i*(H + dH)*(psi + k1*dt);
+    k3 = -_i*(H + dH/2)*(psi + (3*k1 + k2)*dt/8);
+    k4 = -_i*(H + 2.0/3.0*dH)*(psi + (8*k1 + 2*k2 + 8*k3)*dt/27);
+    k5 = -_i*(H + (7.0 - _s21)/14*dH)*(psi + (3*(3*_s21 - 7)*k1 - 8*(7 - _s21)*k2 + 48*(7 - _s21)*k3 - 3*(21 - _s21)*k4)*dt/392);
+    k6 = -_i*(H + (7.0 + _s21)/14*dH)*(psi + (-5*(231 + 51*_s21)*k1 - 40*(7 + _s21)*k2 - 320*_s21*k3 + 3*(21 + 121*_s21)*k4 + 392*(6 + _s21)*k5)*dt/1960);
+    k7 = -_i*(H + dH)*(psi + (15*(22+7*_s21)*k1 + 120*k2 + 40*(7*_s21 - 5)*k3 - 63*(3*_s21 - 2)*k4 - 14*(49 + 9*_s21)*k5 + 70*(7 - _s21)*k6)*dt/180);
 
-  psi += dt/6*(k1+2*k2+2*k3+k4);
+    psi += dt/180*(9*k1 + 64*k3 + 49*k5 + 49*k6 + 9*k7);
+    H   += dH;
   }
   EigenSolver<MatrixXd> solver_H1(H1); // solver for H0
   std::cout << std::endl << std::endl << "H1:" << std::endl << H1 << std::endl;
