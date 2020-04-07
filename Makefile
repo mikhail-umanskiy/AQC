@@ -1,4 +1,6 @@
 SRCS := main.cpp
-ARGS := -std=c++14
+
+OPENMP := -fopenmp
+ARGS := -std=c++14 $(OPENMP)
 all: 
 	g++ $(ARGS) $(SRCS) -o aqc
